@@ -4,16 +4,16 @@ from shap_e.diffusion.gaussian_diffusion import diffusion_from_config
 from shap_e.models.download import load_model, load_config
 from shap_e.util.notebooks import decode_latent_mesh
 
-def inicializar_modelo():
-    """Carrega os modelos na memória (Roda apenas uma vez no startup do servidor)"""
-    print("Carregando modelos nativos do Shap-E...")
+def initialize_model():
+    """Loads the models in the memory (runs once in the server)"""
+    print("Loading Shap-e models...")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     xm = load_model("transmitter", device=device)
     model = load_model("text300M", device=device)
     diffusion = diffusion_from_config(load_config("diffusion"))
     
-    print(f"Modelos carregados com sucesso no dispositivo: {device}")
+    print(f"Models loaded sucessfully on the device: {device}")
     return {
         "xm": xm,
         "model": model,
@@ -21,18 +21,17 @@ def inicializar_modelo():
         "device": device
     }
 
-def gerar_modelo_3d(componentes, prompt: str, output_path: str = "saida.obj"):
-    """Executa a inferência e gera o arquivo OBJ diretamente"""
-    print(f"Iniciando geração nativa para: '{prompt}'...")
+def generate_3d_model(components, prompt: str, output_path: str = "output.obj"):
+    """Executes the inference and generates the .obj file directly"""
+    print(f"Initializing native generation of: '{prompt}'...")
     
-    device = componentes["device"]
+    device = components["device"]
     is_cuda = (device.type == "cuda")
 
-    # Gera os latentes (a matemática do objeto)
     latents = sample_latents(
         batch_size=1,
-        model=componentes["model"],
-        diffusion=componentes["diffusion"],
+        model=components["model"],
+        diffusion=components["diffusion"],
         guidance_scale=15.0,
         model_kwargs=dict(texts=[prompt]),
         progress=True,
@@ -45,17 +44,16 @@ def gerar_modelo_3d(componentes, prompt: str, output_path: str = "saida.obj"):
         s_churn=0,
     )
 
-    print("Decodificando os latentes para malha 3D...")
-    mesh = decode_latent_mesh(componentes["xm"], latents[0]).tri_mesh()
+    print("Decoding the latents of the mesh...")
+    mesh = decode_latent_mesh(components["xm"], latents[0]).tri_mesh()
 
-    # Salva diretamente em OBJ
+    # Saves as .obj
     with open(output_path, "w") as f:
         mesh.write_obj(f)
 
-    print(f"Sucesso! Arquivo salvo em: {output_path}")
+    print(f"Sucess! File saved at: {output_path}")
     return output_path
 
-if __name__ == "__main__":
-    # Teste Local
-    modelos = inicializar_modelo()
-    gerar_modelo_3d(modelos, "a red birthday cake", "birthday_cake.obj")
+def generate(prompt):
+    models = initialize_model()
+    generate_3d_model(models, prompt, "generated_model.obj")

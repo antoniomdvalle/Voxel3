@@ -2,3 +2,5 @@ accelerate
 torch
 torchvision
 git+https://github.com/openai/shap-e.git
+ipywidgets
+customtkinter
